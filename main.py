@@ -4,54 +4,65 @@ from bs4 import BeautifulSoup as BS
 
 
 ##Create a dict of people with number, age, address, follow up link
+class Person:
+
+    def __init__(self, name=None, age=None, addr=None, affil=None, url=None):
+        self.name = name
+        self.age = age
+        self.addr = addr
+        self.affil = affil
+        self.url = url
+
+    def __str__(self):
+        return "{}, {}, {}, {}, {}".format(self.name, self.age, self.addr, self.affil, self.url)
+
+
 def get_people():
-    people = {}
-    names = html.find_all(itemprop='name')
 
-    ##This is duplicating because it is picking up both names with iemprop=names
-    ##Change that somehow
-    for i,name in enumerate(names):
-        print(name)
-        people[i] = {}
-        people[i]["Name"] = name.string
+    people = []
+    pageNum = 1
+    max = 1
+    while pageNum <= max:
+        page = requests.get('https://voterrecords.com/voters/'+state+'/'+first+"+"+last+'/'+str(pageNum))
+        html = BS(page.content, 'html.parser')
 
-    #for i,age in enumerate(list(html.find_all('strong'))):
-    #    if age.string.strip() == "Age:":
-    #            people[i]["Age"] = age.next_sibling
-
-
-    for i, age in enumerate(list(html.find_all('tr'))):
-        if i == 0:
-            continue
-        for x in age.descendants:
-            try:
-
-                if x.string.strip() == "Age:":
-                    people[i]["Age"] = x.next_sibling
-                    break
-            except:
+        tables = html.find_all('tr')
+        for i, data in enumerate(tables):
+            if i == 0 or data.find('ins'):
                 continue
+            person = Person()
+            if data.find(itemprop='name'):
+                person.name = data.find(itemprop='name').string
+            if data.find('strong'):
+                person.age = data.find('strong').next_sibling
+            if data.find(itemprop='address'):
+                person.addr = data.find(itemprop='address').string
+            if data.find(itemprop='affiliation'):
+                person.affil = data.find(itemprop='affiliation').string
+            if data.find(itemprop='url'):
+                person.url = data.find(itemprop='url').get('href')
 
-    for i, addr in enumerate(list(html.find_all('tr'))):
-        if i == 0:
-            continue
-        for x in addr.descendants:
-            try:
 
-                if x.string.strip() == "Residential Address:":
-                    people[i]["Address"] = x.next_sibling.next_sibling.next_sibling.string
-                    break
-            except:
-                continue
+            people.append(person)
+            #break
+        if pageNum == 1:
+            max = int(html.find('div', id='PageBar').string.strip().split()[3])
+        pageNum += 1
 
-    print(people)
+    return people
+#def get_more():
+    ##Pull more info from the their page
+    ##Real address
+    ##Relativse
+    ##Reg date
+
 ##Get the name/state
 '''
 name = input("[+]Please input the name to search(ex. First M Last): ")
 first = name.split()[0]
 
 ##Double check for this
-middle = name.split()[1]
+middle = name.split()Non[1]
 
 last = name.split()[2]
 state = "OK"
@@ -60,13 +71,11 @@ state = "OK"
 first = "James"
 middle = "Lewis"
 last = "Fowler"
-state = "OK"
-
-page = requests.get('https://voterrecords.com/voters/'+state+'/'+first+"+"+last+'/1')
+state = "OH"
 
 
-html = BS(page.content, 'html.parser')
 
 
-##Name
-get_people()
+people = get_people()
+for i,x in enumerate(people):
+    print(i+1,":",x)
