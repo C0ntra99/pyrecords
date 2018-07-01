@@ -17,7 +17,7 @@ class Person:
     followUp: str = None
 
     def full_name(self):
-        return " ".join([temp_name for temp_name in (self.first_name, self.middle_names, self.last_name) if temp_name])
+        return " ".join([temp_name for temp_name in (self.first_name, self.middle_name, self.last_name) if temp_name])
 
 
     def set_name(self, input_string):
@@ -57,7 +57,7 @@ def get_people(main_person):
     while pageNum <= max:
         page = requests.get(get_url(main_person)+str(pageNum), get_UA())
         if int(page.status_code) != 200:
-            sys.exit(('[!]Error, status code: ', page.status_code))
+            sys.exit('[!]Error, status code: {}'.format(page.status_code))
         html = BS(page.content, 'html.parser')
 
         tables = html.find_all('tr')
@@ -83,7 +83,6 @@ def get_people(main_person):
             if html.find('div', id='PageBar'):
                 max = int(html.find('div', id='PageBar').string.strip().split()[3])
             else:
-                print(html)
                 break
         pageNum += 1
         ##Sleep a random time to not seem robotic
@@ -124,9 +123,12 @@ def get_UA():
 
 def get_options(main_person):
     ##Required options
-    output = {'First: ':main_person.first_name,
-            'Last: ':main_person.last_name,
-            'State: ':main_person.state}
+    ##Optional options
+    ##Max queries
+    output = {'First':main_person.first_name,
+            'Last':main_person.last_name,
+            'State':main_person.state}
+
     return output
 
 def header():
@@ -138,9 +140,18 @@ def main_menu():
                     'unset':'reset a variable to None',
                     'use':'use a person',
                     'clear':'clear the screen',
-                    'options':'show variables to set',
+                    'options':'show variables',
                     'run':'run the program',
                     'exit':'exit the program'}
+
+    usage = {'help': 'help [command]',
+            'set': 'set [variable] [value]',
+            'unset': 'unset [variable]',
+            'use': 'use [number]',
+            'clear': 'clear',
+            'options': 'options',
+            'run': 'run',
+            'exit': 'exit'}
 
     show_header = True
     main_person = Person()
@@ -155,39 +166,65 @@ def main_menu():
         #print(options)
         #print(command)
         if command not in main_commands:
-            print("[!]That is not a command")
+            print("[!]Not a valid command: {}".format(command))
 
 
         if command == 'help':
+            if options:
+                if options[0] in main_commands:
+                    print('\tUsage: {}'.format(usage[options[0]]))
+                    show_header = False
+                    continue
+                else:
+                    print('[!]Not a valid command: {}'.format(options[0]))
+
             show_header = True
-            print(header())
+            header()
             ##look pretty
+            print("\tCommand\tDescription")
+            print("\t-------\t-----------")
             for k, v in main_commands.items():
-                print(k,":",v)
+                print("\t{}\t {}".format(k, v))
 
 
         ##Required variables
         if command == 'set':
+            if len(options) <= 0:
+                print("[!]Please enter a variable name")
+                continue
+            elif len(options) <2:
+                print("[!]Please enter a value")
+                continue
             var = options[0]
             val = options[1]
 
             ##Have this iterate through a list of required variables returned be get_options
             ##Double check if the variable exists
-            if var == 'first':
-                main_person.first_name = val
-            elif var == 'last':
-                main_person.last_name = val
-            elif var == 'state':
-                main_person.state = val
+            vars = [x.lower() for x in list(get_options(main_person).keys())]
+            if var in vars:
+                if var == 'first':
+                    main_person.first_name = val
+                elif var == 'last':
+                    main_person.last_name = val
+                elif var == 'state':
+                    if val not in available_states:
+                        print("[!]Not a valid state: {}".format(var))
+                        print("[*]Available states: {}".format(", ".join(available_states)))
+                    main_person.state = val
+            else:
+                print("[!]Not a valid variable: {}".format(var))
 
         if command == 'unset':
             var = options[0]
-            if var == 'first':
-                main_person.first_name = None
-            elif var == 'last':
-                main_person.last_name = None
-            elif var == 'state':
-                main_person.state = None
+            if var in vars:
+                if var == 'first':
+                    main_person.first_name = None
+                elif var == 'last':
+                    main_person.last_name = None
+                elif var == 'state':
+                    main_person.state = None
+            else:
+                print("[!]Not a valid variable: {}".format(var))
 
 
 
@@ -199,12 +236,25 @@ def main_menu():
 
         if command == 'options':
             ##Look pretty
+            print('\tName\tCurrent value\tDescription')
+            print('\t----\t-------------\t-----------')
             for k, v in get_options(main_person).items():
-                print('{}:{}'.format(k, v))
+                if k == "First":
+                    desc = "First name of the target"
+                elif k == "Last":
+                    desc = "Last name of the target"
+                if k == 'State':
+                    desc = "State of the target"
+                    desc += ' List of available states: {}'.format(", ".join(available_states))
+                print('\t{}\t{}\t\t{}'.format(k, v, desc))
 
 
         ##Check the set variables, if one is not set then continue
         if command == 'run':
+            if None in get_options(main_person).values():
+                print("[!]Set all variables before running")
+                continue
+
             people = get_people(main_person)
             for i,x in enumerate(people):
                 print('{}:[*]{}\n\
@@ -230,4 +280,6 @@ def main_menu():
     ##Reg date
 
 ##Get the name/state
-main_menu()
+if __name__ == "__main__":
+    available_states = ['ak', 'ar', 'co', 'ct', 'de', 'fl', 'mi', 'nv', 'nc', 'oh', 'ok', 'ri', 'ut', 'wa']
+    main_menu()
