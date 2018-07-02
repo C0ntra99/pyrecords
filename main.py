@@ -3,6 +3,7 @@ import requests
 from bs4 import BeautifulSoup as BS
 import random
 import os
+from fake_useragent import UserAgent
 
 ##Create a dict of people with number, age, address, follow up link
 class Person:
@@ -15,6 +16,10 @@ class Person:
     addr: str = None
     affil: str = None
     followUp: str = None
+
+    ##Gets populated when more_info is called
+    relatives: list = None
+    neighbors: list = None
 
     def full_name(self):
         return " ".join([temp_name for temp_name in (self.first_name, self.middle_name, self.last_name) if temp_name])
@@ -55,7 +60,8 @@ def get_people(main_person):
     pageNum = 1
     max = 1
     while pageNum <= max:
-        page = requests.get(get_url(main_person)+str(pageNum), get_UA())
+        ##Capture the cookies and set them
+        page = requests.get(get_url(main_person)+str(pageNum), headers={'User-Agent':ua.random}, allow_redirects=True)
         if int(page.status_code) != 200:
             sys.exit('[!]Error, status code: {}'.format(page.status_code))
         html = BS(page.content, 'html.parser')
@@ -80,15 +86,32 @@ def get_people(main_person):
             people.append(person)
             #break
         if pageNum == 1:
-            if html.find('div', id='PageBar'):
+            if html.find('div', id='PageBar').string:
                 max = int(html.find('div', id='PageBar').string.strip().split()[3])
             else:
                 break
         pageNum += 1
         ##Sleep a random time to not seem robotic
+        time.sleep(random.randInt(0,5))
 
     return people
 
+def more_info(target):
+    ##Scrape neighbors, relatives, reg date,
+    page = requests.get('https://voterrecords.com/'+target.followUp, headers={'User-Agent':ua.random}, allow_redirects=True)
+
+    if int(page.status_code) != 200:
+        sys.exit('[!]Error, status code: {}'.format(page.status_code))
+    html = BS(page.content, 'html.parser')
+
+    neighbors = html.find_all('tr', itemprop='relatedTo')
+    for i, data in enumerate(tables):
+    ##Neighbors
+        target.relatives.append()
+
+
+
+    ##Parse more data
 
 def get_url(main_person):
     first = main_person.first_name
@@ -107,18 +130,6 @@ def get_url(main_person):
     name_stuff += separator * (len(data) is 1 and name_stuff[-1] is not separator)
     url = 'https://voterrecords.com/voters/{}{}/'.format(state, name_stuff)
     return url
-
-def get_UA():
-    userAgents = [{'user-agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/64.0.3282.119 Safari/537.36'},
-    {'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36'},
-    {'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Safari/537.36'},
-    {'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:60.0) Gecko/20100101 Firefox/60.0'},
-    {'user-agent':'Opera 9.4 (Windows NT 6.1; U; en)'},
-    {'user-agent':'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_5_6; en-US) AppleWebKit/530.5 (KHTML, like Gecko) Chrome/ Safari/530.5'},
-    {'user-agent':'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US) AppleWebKit/533.2 (KHTML, like Gecko) Chrome/6.0'},
-    {'user-agent':'Mozilla/5.0(iPad; U; CPU iPhone OS 3_2 like Mac OS X; en-us) AppleWebKit/531.21.10 (KHTML, like Gecko) Version/4.0.4 Mobile/7B314 Safari/531.21.10'}]
-
-    return userAgents[random.randint(0,len(userAgents)-1)]
 
 
 def get_options(main_person):
@@ -163,11 +174,8 @@ def main_menu():
         new_input = new_input.lower()
         command = new_input.split()[0]
         options = new_input.split()[1:]
-        #print(options)
-        #print(command)
         if command not in main_commands:
             print("[!]Not a valid command: {}".format(command))
-
 
         if command == 'help':
             if options:
@@ -186,7 +194,6 @@ def main_menu():
             for k, v in main_commands.items():
                 print("\t{}\t {}".format(k, v))
 
-
         ##Required variables
         if command == 'set':
             if len(options) <= 0:
@@ -202,6 +209,7 @@ def main_menu():
             ##Double check if the variable exists
             vars = [x.lower() for x in list(get_options(main_person).keys())]
             if var in vars:
+                ##I dont like how this is done
                 if var == 'first':
                     main_person.first_name = val
                 elif var == 'last':
@@ -229,7 +237,6 @@ def main_menu():
 
 
         if command == 'use':
-            ##integrate this into what is returned from get_people
             ##Go to the new followup link and scrape for real address and registration Date
             print("use person:", options[1])
 
@@ -258,8 +265,8 @@ def main_menu():
             people = get_people(main_person)
             for i,x in enumerate(people):
                 print('{}:[*]{}\n\
-                            [*]Age:{}\n\
-                            [*]Location{}\n'.format(i, x.full_name(), x.age, x.addr))
+                        [*]Age:{}\n\
+                        [*]Location{}\n'.format(i, x.full_name(), x.age, x.addr))
             #print(get_url(main_person))
 
         if command == 'clear':
@@ -273,13 +280,8 @@ def main_menu():
 
         show_header = False
 
-#def get_more():
-    ##Pull more info from the their page
-    ##Real address
-    ##Relativse
-    ##Reg date
-
 ##Get the name/state
 if __name__ == "__main__":
+    ua = UserAgent()
     available_states = ['ak', 'ar', 'co', 'ct', 'de', 'fl', 'mi', 'nv', 'nc', 'oh', 'ok', 'ri', 'ut', 'wa']
     main_menu()
