@@ -9,7 +9,7 @@
 <h3 id="installation">Installation</h3>
 <p><em>Make sure that you are running this program in python3.6, this will not work in python2. I have not done any testing with python3.7 yet so no promises.</em></p>
 <p>To set it up simply run</p>
-<pre><code>pip isntall -r requirments.txt
+<pre><code>pip install -r requirments.txt
 </code></pre>
 <p>Once that is finished you can begin.</p>
 <pre><code>python pyrecords.py
