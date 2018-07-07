@@ -17,6 +17,7 @@ class Person:
 	addr: str = None
 	affil: str = None
 	followUp: str = None
+	gender: str = None
 
 	##Gets populated when more_info is called
 	relatives: list = None
@@ -86,8 +87,12 @@ def get_people(main_person):
 			person = Person()
 			if data.find(itemprop='name'):
 				person.set_name(data.find(itemprop='name').string)
-			if data.find('strong'):
+
+			##This only works if there is an age, if not it will grab the gender?
+			if data.find('strong', string=re.compile("Age")):
 				person.age = data.find('strong').next_sibling
+			if data.find(itemprop='gender'):
+				person.gender = data.find(itemprop='gender').string
 			if data.find(itemprop='address'):
 				person.addr = data.find(itemprop='address').string
 			if data.find(itemprop='affiliation'):
@@ -106,7 +111,7 @@ def get_people(main_person):
 		##Print page number or thread it and have a spinner
 		pageNum += 1
 		##Sleep a random time to not seem robotic
-		time.sleep(random.randint(3,6))
+		time.sleep(random.randint(3,maxTime))
 
 	return people
 
@@ -141,6 +146,7 @@ def more_info(target):
 		#target.relatives.append()
 
 	print('[+]Information about: {}\n'.format(html.find(itemprop='name').string))
+	print('[+]Gender: {}'.format(target.gender))
 	print('[+]Real address: {}'.format(html.find('p', id='residential-address', itemprop='address homeLocation').string))
 	print('[+]Registration date: {}'.format('FIX PLS'))
 	print("[+]Affiliation: {}".format(target.affil))
@@ -170,16 +176,10 @@ def get_url(main_person):
 
 
 def get_options(main_person):
-	##Required options
-	##First
-	##Last
-	##State
-
-	##Optional options
-		##Max queries
 	output = {'First':main_person.first_name,
 			'Last':main_person.last_name,
-			'State':main_person.state}
+			'State':main_person.state,
+			'Time': maxTime}
 
 	return output
 
@@ -202,6 +202,8 @@ def header():
 	print("[+]Type 'help' to get started")
 
 def main_menu():
+	global maxTime
+	maxTime = 6
 	main_commands = {'help':'print help screen',
 					'set':'set a variable',
 					'unset':'reset a variable to None',
@@ -222,9 +224,6 @@ def main_menu():
 
 	show_header = True
 	main_person = Person()
-	main_person.first_name = "roy"
-	main_person.last_name = "baggett"
-	main_person.state = "ok"
 	while True:
 		if show_header:
 			header()
@@ -264,8 +263,6 @@ def main_menu():
 			var = options[0]
 			val = options[1]
 
-			##Have this iterate through a list of required variables returned be get_options
-			##Double check if the variable exists
 			vars = [x.lower() for x in list(get_options(main_person).keys())]
 			if var in vars:
 				##I dont like how this is done
@@ -278,6 +275,8 @@ def main_menu():
 						print("[!]Not a valid state: {}".format(var))
 						print("[*]Available states: {}".format(", ".join(available_states)))
 					main_person.state = val
+				elif var == 'time':
+					maxTime = val
 			else:
 				print("[!]Not a valid variable: {}".format(var))
 
@@ -290,15 +289,15 @@ def main_menu():
 					main_person.last_name = None
 				elif var == 'state':
 					main_person.state = None
+				elif var == 'time':
+					maxTime = 6
 			else:
 				print("[!]Not a valid variable: {}".format(var))
 
 
 
 		if command == 'use':
-			##Go to the new followup link and scrape for real address and registration Date
 			more_info(people[int(options[0])])
-
 
 		if command == 'options':
 			##Look pretty
@@ -309,9 +308,11 @@ def main_menu():
 					desc = "First name of the target"
 				elif k == "Last":
 					desc = "Last name of the target"
-				if k == 'State':
+				elif k == 'State':
 					desc = "State of the target"
 					desc += ' List of available states: {}'.format(", ".join(available_states))
+				elif k == 'Time':
+					desc = "Max time to wait in between page jumps: default = 6"
 				print('\t{}\t{}\t\t{}'.format(k, v, desc))
 
 
@@ -323,12 +324,13 @@ def main_menu():
 
 			people = get_people(main_person)
 			for i,x in enumerate(people):
-				print('{}:[*] {}\n\t[*]Age: {}\n\t[*]Location: {}\n'.format(i, x.full_name(), x.age, x.addr))
-			#print(get_url(main_person))
+				print('{}:[*] {}\n\t[*]Gender: {}\n\t[*]Age: {}\n\t[*]Location: {}\n'.format(i, x.full_name(), x.gender, x.age, x.addr))
 
 		if command == 'clear':
-			##check on windows or linux
-			os.system('cls')
+			if 'nt' in os.name:
+				os.system('cls')
+			else:
+				os.system('clear')
 			show_header = True
 			continue
 
