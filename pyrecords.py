@@ -73,8 +73,11 @@ def get_people(main_person):
 			page = session.get(get_url(main_person)+str(pageNum), headers=urlHeader, allow_redirects=True)
 			global cookies
 			cookies = session.cookies
+			print("[*]Scraping page 1 of ?...", end='\r')
 		else:
 			page = session.get(get_url(main_person)+str(pageNum), headers=urlHeader, allow_redirects=True, cookies=cookies)
+			print("[*]Scraping page {} of {}...".format(pageNum, max), end='\r')
+
 
 		if int(page.status_code) != 200:
 			sys.exit('[!]Error, status code: {}'.format(page.status_code))
@@ -108,9 +111,8 @@ def get_people(main_person):
 				max = int(html.find('div', id='PageBar').string.strip().split()[3])
 			else:
 				break
-		##Print page number or thread it and have a spinner
+
 		pageNum += 1
-		##Sleep a random time to not seem robotic
 		time.sleep(random.randint(3,maxTime))
 
 	return people
@@ -176,6 +178,9 @@ def get_url(main_person):
 
 
 def get_options(main_person):
+	##city
+	##Race?
+	##Age range?
 	output = {'First':main_person.first_name,
 			'Last':main_person.last_name,
 			'State':main_person.state,
@@ -324,7 +329,7 @@ def main_menu():
 
 			people = get_people(main_person)
 			for i,x in enumerate(people):
-				print('{}:[*] {}\n\t[*]Gender: {}\n\t[*]Age: {}\n\t[*]Location: {}\n'.format(i, x.full_name(), x.gender, x.age, x.addr))
+				print('{}:[+] {}\n\t[*]Gender: {}\n\t[*]Age: {}\n\t[*]Location: {}\n'.format(i, x.full_name(), x.gender, x.age, x.addr))
 
 		if command == 'clear':
 			if 'nt' in os.name:
